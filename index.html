@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Купидон</title>
+<title>Купидон и сердца</title>
 
 <style>
 html, body {
@@ -19,6 +19,7 @@ canvas {
   display: block;
 }
 
+/* экран старта и конца */
 #overlay {
   position: absolute;
   inset: 0;
@@ -31,9 +32,9 @@ canvas {
   z-index: 10;
 }
 
-#overlay div {
+#overlay .box {
   background: rgba(0,0,0,0.6);
-  padding: 24px 28px;
+  padding: 26px 30px;
   border-radius: 18px;
   max-width: 90%;
 }
@@ -43,6 +44,7 @@ canvas {
   color: #ffb6d9;
 }
 
+/* жизни */
 #lives {
   position: absolute;
   top: 12px;
@@ -58,7 +60,7 @@ canvas {
 <body>
 
 <div id="overlay">
-  <div>
+  <div class="box">
     <h2>💘 С 14 февраля!</h2>
     <p>
       Помогите Купидону поймать все сердца,<br>
@@ -75,6 +77,7 @@ canvas {
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
+/* ---------- размер ---------- */
 function resize() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -82,42 +85,60 @@ function resize() {
 resize();
 window.addEventListener("resize", resize);
 
-// изображения
+/* ---------- изображения ---------- */
 const bg = new Image();
 const cupidImg = new Image();
 bg.src = "background.png";
 cupidImg.src = "cupid.png";
 
-// купидон
+/* ---------- функция cover для фона ---------- */
+function drawBackgroundCover(img) {
+  if (!img.complete) return;
+
+  const cw = canvas.width;
+  const ch = canvas.height;
+  const iw = img.width;
+  const ih = img.height;
+
+  const scale = Math.max(cw / iw, ch / ih);
+  const x = (cw - iw * scale) / 2;
+  const y = (ch - ih * scale) / 2;
+
+  ctx.drawImage(img, x, y, iw * scale, ih * scale);
+}
+
+/* ---------- купидон ---------- */
 const cupid = {
   x: canvas.width / 2,
-  y: () => canvas.height - 150,
   w: 120,
-  h: 140
+  h: 140,
+  y() {
+    return canvas.height - this.h - 10;
+  }
 };
 
-// состояние игры
+/* ---------- состояние игры ---------- */
 let hearts = [];
 let missed = 0;
 let score = 0;
 let speed = 2.5;
 let running = false;
 
-// управление
+/* ---------- управление ---------- */
 function move(x) {
   cupid.x = x - cupid.w / 2;
 }
+
 canvas.addEventListener("mousemove", e => move(e.clientX));
 canvas.addEventListener("touchmove", e => move(e.touches[0].clientX));
 
-// старт / рестарт
+/* ---------- старт / рестарт ---------- */
 document.body.addEventListener("click", startGame);
 document.body.addEventListener("touchstart", startGame);
 
 function startGame() {
   if (running) return;
 
-  // сброс
   hearts = [];
   missed = 0;
   score = 0;
@@ -128,7 +149,7 @@ function startGame() {
   document.getElementById("overlay").style.display = "none";
 }
 
-// сердца
+/* ---------- создание сердец ---------- */
 setInterval(() => {
   if (!running) return;
   hearts.push({
@@ -137,21 +158,17 @@ setInterval(() => {
   });
 }, 700);
 
-// игровой цикл
+/* ---------- игровой цикл ---------- */
 function loop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // фон
-  ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
+  /* фон */
+  drawBackgroundCover(bg);
 
-  // купидон
-  ctx.drawImage(
-    cupidImg,
-    cupid.x,
-    cupid.y(),
-    cupid.w,
-    cupid.h
-  );
+  /* купидон */
+  if (cupidImg.complete) {
+    ctx.drawImage(cupidImg, cupid.x, cupid.y(), cupid.w, cupid.h);
+  }
 
   ctx.font = "32px serif";
 
@@ -161,7 +178,7 @@ function loop() {
       h.y += speed;
       ctx.fillText("💗", h.x, h.y);
 
-      // поймали
+      /* поймали */
       if (
         h.x < cupid.x + cupid.w &&
         h.x + 30 > cupid.x &&
@@ -174,7 +191,7 @@ function loop() {
         continue;
       }
 
-      // пропустили
+      /* пропустили */
       if (h.y > canvas.height) {
         hearts.splice(i, 1);
         missed++;
@@ -188,11 +205,12 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
+/* ---------- конец игры ---------- */
 function endGame() {
   running = false;
   document.getElementById("overlay").style.display = "flex";
   document.getElementById("overlay").innerHTML = `
-    <div>
+    <div class="box">
       <h2>💞 Игра окончена</h2>
       <p>
         Вам удалось объединить <b>${score}</b> пар 💕
