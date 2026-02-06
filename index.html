@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Купидон и сердца</title>
+<title>Купидон</title>
 
 <style>
 html, body {
@@ -21,7 +21,7 @@ canvas {
 #overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0,0,0,0.65);
+  background: rgba(0,0,0,0.7);
   color: white;
   display: flex;
   align-items: center;
@@ -31,21 +31,10 @@ canvas {
 }
 
 #overlay div {
-  max-width: 90%;
   background: rgba(0,0,0,0.6);
   padding: 24px;
   border-radius: 16px;
-  box-shadow: 0 0 20px rgba(255,105,180,0.6);
-}
-
-#overlay h1 {
-  margin-top: 0;
-  color: #ffb6d9;
-}
-
-#overlay p {
-  font-size: 18px;
-  line-height: 1.4;
+  max-width: 90%;
 }
 
 #lives {
@@ -54,7 +43,6 @@ canvas {
   right: 12px;
   font-size: 22px;
   color: white;
-  text-shadow: 0 0 6px black;
   z-index: 5;
 }
 </style>
@@ -64,17 +52,16 @@ canvas {
 
 <div id="overlay">
   <div>
-    <h1>💘 С 14 февраля!</h1>
+    <h2>💘 С 14 февраля!</h2>
     <p>
       Помогите Купидону поймать все сердца,<br>
       чтобы объединить как можно больше пар 💕
     </p>
-    <p><small>Коснитесь экрана или кликните мышью</small></p>
+    <p><small>Коснитесь экрана или кликните</small></p>
   </div>
 </div>
 
 <div id="lives">❤️ 5</div>
-
 <canvas id="game"></canvas>
 
 <script>
@@ -84,116 +71,116 @@ const ctx = canvas.getContext("2d");
 canvas.width = innerWidth;
 canvas.height = innerHeight;
 
-// ЗАГРУЗКА КАРТИНОК
+// картинки
 const bg = new Image();
-const cupidImg = new Image();
-let loaded = 0;
-
 bg.src = "background.png";
+
+const cupidImg = new Image();
 cupidImg.src = "cupid.png";
 
-bg.onload = cupidImg.onload = () => {
-  loaded++;
-  if (loaded === 2) ready();
-};
-
-function ready() {
-  draw();
-}
-
+// купидон
 const cupid = {
-  x: canvas.width / 2,
-  y: canvas.height - 170,
-  w: 130,
-  h: 150
+  x: canvas.width / 2 - 60,
+  y: canvas.height - 160,
+  w: 120,
+  h: 140
 };
 
+// игра
 let hearts = [];
 let score = 0;
 let lives = 5;
 let speed = 2;
 let running = false;
 
-function draw() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
-  ctx.drawImage(cupidImg, cupid.x, cupid.y, cupid.w, cupid.h);
-
-  hearts.forEach(h => {
-    ctx.font = "36px serif";
-    ctx.fillText("💗", h.x, h.y);
-  });
-
-  if (running) requestAnimationFrame(draw);
+// управление
+function move(x) {
+  cupid.x = x - cupid.w / 2;
 }
 
-function spawnHeart() {
-  if (!running) return;
+canvas.addEventListener("mousemove", e => move(e.clientX));
+canvas.addEventListener("touchmove", e => move(e.touches[0].clientX));
 
-  hearts.push({
-    x: Math.random() * (canvas.width - 40),
-    y: -40
-  });
-
-  setTimeout(spawnHeart, 900);
-}
-
-function update() {
-  if (!running) return;
-
-  for (let i = hearts.length - 1; i >= 0; i--) {
-    hearts[i].y += speed;
-
-    if (
-      hearts[i].x < cupid.x + cupid.w &&
-      hearts[i].x + 30 > cupid.x &&
-      hearts[i].y < cupid.y + cupid.h &&
-      hearts[i].y + 30 > cupid.y
-    ) {
-      hearts.splice(i,1);
-      score++;
-      if (score % 8 === 0) speed += 0.4;
-      continue;
-    }
-
-    if (hearts[i].y > canvas.height) {
-      hearts.splice(i,1);
-      lives--;
-      document.getElementById("lives").innerText = "❤️ " + lives;
-      if (lives <= 0) end();
-    }
-  }
-
-  setTimeout(update, 16);
-}
+// старт
+document.body.addEventListener("click", start);
+document.body.addEventListener("touchstart", start);
 
 function start() {
   if (running) return;
   running = true;
   document.getElementById("overlay").style.display = "none";
-  spawnHeart();
-  update();
-  draw();
 }
 
-function end() {
+// сердца
+function spawnHeart() {
+  hearts.push({
+    x: Math.random() * (canvas.width - 30),
+    y: -30
+  });
+}
+
+// основной цикл
+function gameLoop() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // фон
+  if (bg.complete) {
+    ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
+  }
+
+  // купидон
+  if (cupidImg.complete) {
+    ctx.drawImage(cupidImg, cupid.x, cupid.y, cupid.w, cupid.h);
+  }
+
+  if (running) {
+    if (Math.random() < 0.03) spawnHeart();
+
+    for (let i = hearts.length - 1; i >= 0; i--) {
+      const h = hearts[i];
+      h.y += speed;
+
+      ctx.font = "32px serif";
+      ctx.fillText("💗", h.x, h.y);
+
+      // поймали
+      if (
+        h.x < cupid.x + cupid.w &&
+        h.x + 30 > cupid.x &&
+        h.y < cupid.y + cupid.h &&
+        h.y + 30 > cupid.y
+      ) {
+        hearts.splice(i,1);
+        score++;
+        if (score % 10 === 0) speed += 0.5;
+        continue;
+      }
+
+      // упало
+      if (h.y > canvas.height) {
+        hearts.splice(i,1);
+        lives--;
+        document.getElementById("lives").innerText = "❤️ " + lives;
+        if (lives <= 0) endGame();
+      }
+    }
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+function endGame() {
   running = false;
   document.getElementById("overlay").style.display = "flex";
   document.getElementById("overlay").innerHTML = `
     <div>
-      <h1>💞 Игра окончена</h1>
+      <h2>💞 Игра окончена</h2>
       <p>Вам удалось объединить <b>${score}</b> пар 💕</p>
     </div>
   `;
 }
 
-// управление
-canvas.addEventListener("mousemove", e => cupid.x = e.clientX - cupid.w/2);
-canvas.addEventListener("touchmove", e => cupid.x = e.touches[0].clientX - cupid.w/2);
-
-document.body.addEventListener("click", start);
-document.body.addEventListener("touchstart", start);
+gameLoop();
 </script>
 
 </body>
