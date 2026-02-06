@@ -3,79 +3,152 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Debug Cupid</title>
+<title>Купидон</title>
 
 <style>
-html,body {
+html,body{
   margin:0;
   padding:0;
   overflow:hidden;
   touch-action:none;
+  font-family:Arial,sans-serif;
 }
-
-canvas { display:block; }
-
-#lives {
+canvas{display:block;}
+#lives{
   position:absolute;
-  top:10px;
-  right:10px;
-  color:white;
+  top:12px;
+  right:12px;
   font-size:22px;
+  color:white;
+  text-shadow:0 0 6px black;
+  z-index:5;
+}
+#overlay{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,.65);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:white;
+  text-align:center;
   z-index:10;
+}
+#overlay div{
+  background:rgba(0,0,0,.6);
+  padding:24px;
+  border-radius:16px;
 }
 </style>
 </head>
 
 <body>
 
+<div id="overlay">
+  <div>
+    <h2>💘 С 14 февраля!</h2>
+    <p>
+      Помогите Купидону поймать все сердца,<br>
+      чтобы объединить как можно больше пар 💕
+    </p>
+    <small>Кликните или коснитесь экрана</small>
+  </div>
+</div>
+
 <div id="lives">❤️ 5</div>
-<canvas id="c"></canvas>
+<canvas id="game"></canvas>
 
 <script>
-const canvas = document.getElementById("c");
+const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 canvas.width = innerWidth;
 canvas.height = innerHeight;
 
-let cupidX = canvas.width/2;
+// картинки
+const bg = new Image();
+const cupidImg = new Image();
+bg.src = "background.png";
+cupidImg.src = "cupid.png";
+
+// купидон
+const cupid = {
+  x: canvas.width/2 - 60,
+  y: canvas.height - 160,
+  w: 120,
+  h: 140
+};
+
 let hearts = [];
 let lives = 5;
+let score = 0;
+let speed = 2;
+let running = false;
 
 // управление
-canvas.addEventListener("mousemove", e => cupidX = e.clientX);
-canvas.addEventListener("touchmove", e => cupidX = e.touches[0].clientX);
+function move(x){ cupid.x = x - cupid.w/2; }
+canvas.addEventListener("mousemove",e=>move(e.clientX));
+canvas.addEventListener("touchmove",e=>move(e.touches[0].clientX));
 
-// сердца
-setInterval(() => {
-  hearts.push({ x: Math.random()*canvas.width, y: -20 });
-}, 800);
+// старт
+document.body.addEventListener("click",start);
+document.body.addEventListener("touchstart",start);
 
-function loop() {
+function start(){
+  if(running) return;
+  running = true;
+  document.getElementById("overlay").style.display="none";
+}
+
+// создание сердец
+setInterval(()=>{
+  if(running) hearts.push({x:Math.random()*(canvas.width-30),y:-30});
+},800);
+
+// цикл
+function loop(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  // ФОН (заглушка)
-  ctx.fillStyle = "#402060";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(bg,0,0,canvas.width,canvas.height);
+  ctx.drawImage(cupidImg,cupid.x,cupid.y,cupid.w,cupid.h);
 
-  // КУПИДОН (заглушка)
-  ctx.fillStyle = "pink";
-  ctx.fillRect(cupidX-40, canvas.height-120, 80, 100);
+  ctx.font="32px serif";
+  for(let i=hearts.length-1;i>=0;i--){
+    const h=hearts[i];
+    h.y+=speed;
+    ctx.fillText("💗",h.x,h.y);
 
-  // СЕРДЦА
-  ctx.font = "30px serif";
-  hearts.forEach(h => {
-    h.y += 3;
-    ctx.fillText("💗", h.x, h.y);
-
-    if (h.y > canvas.height) {
-      lives--;
-      document.getElementById("lives").innerText = "❤️ " + lives;
+    if(
+      h.x < cupid.x + cupid.w &&
+      h.x + 30 > cupid.x &&
+      h.y < cupid.y + cupid.h &&
+      h.y + 30 > cupid.y
+    ){
+      hearts.splice(i,1);
+      score++;
+      if(score%10===0) speed+=0.4;
+      continue;
     }
-  });
 
-  hearts = hearts.filter(h => h.y < canvas.height);
+    if(h.y>canvas.height){
+      hearts.splice(i,1);
+      lives--;
+      document.getElementById("lives").innerText="❤️ "+lives;
+      if(lives<=0) end();
+    }
+  }
 
   requestAnimationFrame(loop);
+}
+
+function end(){
+  running=false;
+  document.getElementById("overlay").style.display="flex";
+  document.getElementById("overlay").innerHTML=`
+    <div>
+      <h2>💞 Игра окончена</h2>
+      <p>Вам удалось объединить <b>${score}</b> пар 💕</p>
+    </div>
+  `;
 }
 
 loop();
